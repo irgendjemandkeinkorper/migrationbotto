@@ -18,8 +18,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", help="Optional TOML config (selectors, WP creds, etc.).")
     parser.add_argument(
         "--images",
-        choices=["upload", "bundle", "remote"],
-        help="Override image handling: upload to WP media library / bundle locally / leave remote.",
+        choices=["upload", "sideload", "bundle", "remote"],
+        help="Image handling: upload (REST to media library) / sideload (WXR "
+        "attachment items, importer fetches them) / bundle (local) / remote.",
     )
     args = parser.parse_args(argv)
 

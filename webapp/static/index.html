@@ -90,9 +90,10 @@
       <div>
         <label>Images</label>
         <select id="imageMode">
-          <option value="remote">Remote — importer sideloads (no WP creds)</option>
+          <option value="sideload">Sideload — importer fetches images into the media library (no REST)</option>
+          <option value="remote">Remote — inline links only, not imported</option>
           <option value="bundle">Bundle — download locally</option>
-          <option value="upload">Upload — into WP media library</option>
+          <option value="upload">Upload — push to WP media library via REST</option>
         </select>
       </div>
       <div>

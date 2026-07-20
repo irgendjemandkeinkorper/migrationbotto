@@ -76,8 +76,14 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
                                      "message": "empty after conversion"})
                     continue
 
+                page_images = (
+                    [(img.src, img.alt) for img in ex.images]
+                    if cfg.image_mode == "sideload"
+                    else []
+                )
                 pages.append(
-                    wxr.Page(title=ex.title, link=url, content_blocks=block_markup)
+                    wxr.Page(title=ex.title, link=url,
+                             content_blocks=block_markup, images=page_images)
                 )
                 print("    ok")
                 _emit(progress, {"type": "page", "index": i, "total": total,
@@ -99,6 +105,7 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
             author=cfg.author,
             post_type=cfg.post_type,
             status=cfg.post_status,
+            emit_attachments=(cfg.image_mode == "sideload"),
         )
         cfg.out_file.write_text(doc, encoding="utf-8")
         print(f"\nWrote {len(pages)} page(s) to {cfg.out_file}")

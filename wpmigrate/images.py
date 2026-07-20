@@ -99,7 +99,10 @@ class ImagePipeline:
                 )
                 continue
             try:
-                if self.cfg.image_mode == "remote":
+                if self.cfg.image_mode in ("remote", "sideload"):
+                    # Inline references stay as the source URL. In "sideload"
+                    # mode the WXR also emits an attachment item per image so
+                    # the importer fetches and remaps them server-side.
                     result = MediaResult(url=ref.src, alt=ref.alt)
                 else:
                     path, ctype = self._download(ref.src)

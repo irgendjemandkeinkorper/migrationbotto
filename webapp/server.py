@@ -58,7 +58,7 @@ class SitemapReq(BaseModel):
 
 class JobReq(BaseModel):
     urls: list[str]
-    image_mode: str = "remote"       # remote | bundle | upload
+    image_mode: str = "sideload"     # sideload | remote | bundle | upload
     post_type: str = "page"
     post_status: str = "publish"
     author: str = "admin"

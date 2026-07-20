@@ -98,14 +98,22 @@ extraction pipeline — so the work has to happen server-side.
 
 ## Image modes
 
-| Mode     | What it does                                                        | Needs WP creds |
-|----------|--------------------------------------------------------------------|:--------------:|
-| `upload` | Download originals, POST into the media library as real attachments | yes            |
-| `bundle` | Download into `images_cache/`, reference local filenames            | no             |
-| `remote` | Leave source URLs; WP importer sideloads on import                  | no             |
+| Mode       | What it does                                                              | Needs WP creds |
+|------------|--------------------------------------------------------------------------|:--------------:|
+| `sideload` | Emits WXR **attachment items**; on import (with "Download and import file attachments" checked) WordPress fetches each image server-side into the media library and remaps the `<img>` URLs | no |
+| `upload`   | Download originals, POST into the media library via the REST API          | yes            |
+| `bundle`   | Download into `images_cache/`, reference local filenames                  | no             |
+| `remote`   | Leave source URLs inline; no attachment items (images not imported)       | no             |
 
-`upload` is the recommended path — pages reference real media-library
-attachments and are fully decoupled from the source sites.
+**Which to pick:**
+
+- `sideload` — best for **managed hosts** (e.g. platforms that block the REST
+  API). The import runs server-side inside the target, so there's no external
+  auth. Requirement: the target server must be able to reach the source image
+  URLs during import.
+- `upload` — best when you have working REST access to the target: pages
+  reference real media-library attachments with attachment IDs. Fails if the
+  host blocks authenticated REST writes.
 
 ## Tuning extraction
 

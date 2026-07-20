@@ -34,9 +34,12 @@ class Config:
     author: str = "admin"            # dc:creator / wp:post_author login
 
     # --- images ---
-    # "upload"  -> download then POST to the WP media library (needs WP creds)
-    # "bundle"  -> download into image_dir, reference local files (no upload)
-    # "remote"  -> leave source URLs; let the WP importer sideload on import
+    # "upload"   -> download then POST to the WP media library (needs WP creds)
+    # "sideload" -> emit WXR attachment items; the WP importer fetches each
+    #               image server-side on import (no REST needed — works against
+    #               managed hosts that block the REST API)
+    # "bundle"   -> download into image_dir, reference local files (no upload)
+    # "remote"   -> leave source URLs inline; no attachment items
     image_mode: str = "upload"
 
     # --- WordPress REST (only needed for image_mode == "upload") ---
@@ -114,6 +117,6 @@ def validate(cfg: Config) -> list[str]:
                 "image_mode=upload needs WP_APP_PASSWORD in the environment "
                 "(a WordPress application password)."
             )
-    if cfg.image_mode not in ("upload", "bundle", "remote"):
+    if cfg.image_mode not in ("upload", "sideload", "bundle", "remote"):
         problems.append(f"Unknown image_mode: {cfg.image_mode}")
     return problems
