@@ -1,7 +1,17 @@
-"""Orchestrate the full migration: URLs in, WXR out."""
+"""Orchestrate the full migration: URLs in, WXR out.
+
+`run()` optionally takes a `progress` callback so a UI (or any caller) can watch
+the migration live. Events are plain dicts:
+  {"type": "start",  "total": N}
+  {"type": "page",   "index": i, "total": N, "url": u,
+                     "status": "ok"|"failed"|"skipped", "title": t,
+                     "images": k, "message": str}
+  {"type": "done",   "succeeded": s, "failed": f}
+"""
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 import anthropic
 
@@ -9,6 +19,8 @@ from . import blocks, clean_llm, extract as extract_mod, wxr
 from .config import Config
 from .fetch import Fetcher
 from .images import ImagePipeline
+
+Progress = Callable[[dict], None]
 
 
 def read_urls(path: Path) -> list[str]:
@@ -20,10 +32,17 @@ def read_urls(path: Path) -> list[str]:
     return urls
 
 
-def run(cfg: Config) -> tuple[int, int]:
+def _emit(progress: Progress | None, event: dict) -> None:
+    if progress is not None:
+        progress(event)
+
+
+def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
     """Run the pipeline. Returns (succeeded, failed) page counts."""
     urls = read_urls(cfg.urls_file)
-    print(f"Loaded {len(urls)} URL(s). Model: {cfg.model}. Images: {cfg.image_mode}.")
+    total = len(urls)
+    print(f"Loaded {total} URL(s). Model: {cfg.model}. Images: {cfg.image_mode}.")
+    _emit(progress, {"type": "start", "total": total})
 
     fetcher = Fetcher(cfg.user_agent, cfg.request_timeout, cfg.rate_limit_seconds)
     images = ImagePipeline(cfg, fetcher)
@@ -34,15 +53,17 @@ def run(cfg: Config) -> tuple[int, int]:
 
     try:
         for i, url in enumerate(urls, start=1):
-            print(f"[{i}/{len(urls)}] {url}")
+            print(f"[{i}/{total}] {url}")
             try:
                 raw = fetcher.get_html(url)
                 ex = extract_mod.extract(raw, url, cfg.selectors)
                 if not ex.html.strip():
                     print("    ! no main content extracted; skipping")
                     failed += 1
+                    _emit(progress, {"type": "page", "index": i, "total": total,
+                                     "url": url, "status": "skipped",
+                                     "message": "no main content extracted"})
                     continue
-                print(f"    title: {ex.title!r}  images: {len(ex.images)}")
 
                 media_map = images.process(ex.images)
                 cleaned = clean_llm.clean(client, cfg, ex.title, ex.html)
@@ -50,15 +71,24 @@ def run(cfg: Config) -> tuple[int, int]:
                 if not block_markup.strip():
                     print("    ! empty after conversion; skipping")
                     failed += 1
+                    _emit(progress, {"type": "page", "index": i, "total": total,
+                                     "url": url, "status": "skipped",
+                                     "message": "empty after conversion"})
                     continue
 
                 pages.append(
                     wxr.Page(title=ex.title, link=url, content_blocks=block_markup)
                 )
                 print("    ok")
+                _emit(progress, {"type": "page", "index": i, "total": total,
+                                 "url": url, "status": "ok", "title": ex.title,
+                                 "images": len(ex.images)})
             except Exception as exc:
                 print(f"    ! failed: {exc}")
                 failed += 1
+                _emit(progress, {"type": "page", "index": i, "total": total,
+                                 "url": url, "status": "failed",
+                                 "message": str(exc)})
     finally:
         images.close()
         fetcher.close()
@@ -75,4 +105,5 @@ def run(cfg: Config) -> tuple[int, int]:
     else:
         print("\nNo pages succeeded; no WXR written.")
 
+    _emit(progress, {"type": "done", "succeeded": len(pages), "failed": failed})
     return len(pages), failed

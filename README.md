@@ -65,6 +65,37 @@ python -m wpmigrate --urls urls.txt --images remote     # no WP creds needed
 
 Then in WordPress: **Tools → Import → WordPress**, upload `export.wxr`.
 
+## Web UI
+
+A local browser interface over the same pipeline — paste URLs or discover them
+from a sitemap, pick options, watch progress, and download the WXR.
+
+```bash
+pip install -r requirements.txt -r requirements-web.txt
+export ANTHROPIC_API_KEY=sk-ant-...        # required
+export WP_APP_PASSWORD='xxxx xxxx xxxx'    # only for the "upload" image mode
+python -m webapp                            # serves http://127.0.0.1:8000
+```
+
+Open `http://127.0.0.1:8000`, then:
+
+1. **Source** — paste URLs (one per line), or enter a `sitemap.xml` URL and
+   click *Fetch URLs* to populate the list (sitemap-index files are expanded).
+2. **Options** — image mode, post type/status, author, optional model. For
+   *upload* mode, enter the WordPress URL + user (the app password stays in the
+   server env).
+3. **Start** — a background job runs the pipeline with a live progress log;
+   when it finishes, download `export.wxr`.
+
+It's a **single-user local tool**: secrets stay server-side in env vars, jobs
+run in-memory. It is not hardened for public/multi-user hosting — don't expose
+it to the internet as-is. Change host/port with `WPMIGRATE_HOST` /
+`WPMIGRATE_PORT`.
+
+Why a server (and not a static page): a browser can't fetch arbitrary
+cross-origin sites, can't safely hold your API keys, and can't run the Python
+extraction pipeline — so the work has to happen server-side.
+
 ## Image modes
 
 | Mode     | What it does                                                        | Needs WP creds |
