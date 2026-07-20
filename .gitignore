@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Local config & secrets
+config.toml
+.env
+
+# Runtime output
+images_cache/
+*.wxr

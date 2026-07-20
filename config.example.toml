@@ -1,0 +1,35 @@
+# wp-migrator config. Copy to config.toml and edit. Secrets stay in the
+# environment (WP_APP_PASSWORD, ANTHROPIC_API_KEY) — never put them here.
+
+# How to handle images:
+#   "upload" = download + POST into the WP media library (needs the wp_* fields)
+#   "bundle" = download into image_dir and reference local filenames
+#   "remote" = leave source URLs; let the WP importer sideload on import
+image_mode = "upload"
+image_dir = "images_cache"
+
+# Post settings
+post_type = "page"        # "page" or "post"
+post_status = "publish"   # "publish" | "draft" | "pending"
+author = "admin"          # must match a WordPress user login
+
+# WordPress REST (only for image_mode = "upload")
+wp_base_url = "https://your-site.com"
+wp_user = "admin"
+# WP_APP_PASSWORD comes from the environment, not this file.
+
+# LLM cleanup (WPMIGRATE_MODEL env var overrides `model`)
+model = "claude-opus-4-8"
+effort = "medium"         # low | medium | high | max
+llm_max_tokens = 32000
+
+# Fetch politeness
+request_timeout = 30.0
+rate_limit_seconds = 1.0
+
+# Per-domain main-content overrides. When trafilatura's auto-extraction grabs
+# the wrong region on a specific site, pin the content wrapper with a CSS
+# selector. Key is the host (with or without www).
+[selectors]
+# "example.com" = "article.entry-content"
+# "blog.acme.io" = "main .post-body"
