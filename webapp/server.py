@@ -66,6 +66,7 @@ class JobReq(BaseModel):
     wp_base_url: str = ""
     wp_user: str = ""
     selectors: dict[str, str] = {}
+    render: bool = False              # headless-browser (Playwright) rendering
 
 
 # --------------------------------------------------------------------------- #
@@ -119,6 +120,7 @@ def api_create_job(req: JobReq) -> dict:
         wp_app_password=os.environ.get("WP_APP_PASSWORD", ""),
         model=req.model.strip()
         or os.environ.get("WPMIGRATE_MODEL", DEFAULT_MODEL),
+        render=req.render,
     )
 
     problems = validate(cfg)

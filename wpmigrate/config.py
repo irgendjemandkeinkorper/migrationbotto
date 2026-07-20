@@ -58,6 +58,12 @@ class Config:
     user_agent: str = (
         "wp-migrator/0.1 (+content migration tool)"
     )
+    # Render pages with a headless browser (Playwright) so JavaScript runs
+    # before extraction. Needed for JS-rendered content; requires the optional
+    # playwright dependency + `python -m playwright install chromium`.
+    render: bool = False
+    render_wait_ms: int = 1500       # settle time after load/scroll
+    render_scroll: bool = True       # scroll to trigger lazy content
 
     @property
     def anthropic_key(self) -> str:
@@ -71,6 +77,7 @@ def load_config(
     out_file: str,
     config_path: str | None,
     image_mode: str | None,
+    render: bool | None = None,
 ) -> Config:
     data: dict = {}
     if config_path:
@@ -94,6 +101,9 @@ def load_config(
         llm_max_tokens=int(data.get("llm_max_tokens", 32000)),
         request_timeout=float(data.get("request_timeout", 30.0)),
         rate_limit_seconds=float(data.get("rate_limit_seconds", 1.0)),
+        render=bool(data.get("render", False)) if render is None else render,
+        render_wait_ms=int(data.get("render_wait_ms", 1500)),
+        render_scroll=bool(data.get("render_scroll", True)),
     )
     return cfg
 

@@ -109,6 +109,9 @@
       <div><label>Author (WP login)</label><input id="author" value="admin"></div>
       <div><label>Model (optional)</label><input id="model" placeholder="claude-opus-4-8"></div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" id="render" style="width:auto"> Render JavaScript (headless browser) — for JS-heavy pages; slower, needs Playwright installed
+    </label>
     <div id="wpFields" class="row">
       <div><label>WordPress URL</label><input id="wpBase" placeholder="https://your-site.com"></div>
       <div><label>WordPress user</label><input id="wpUser" placeholder="admin"></div>
@@ -182,6 +185,7 @@ $("startBtn").addEventListener("click", async () => {
     model: $("model").value.trim(),
     wp_base_url: $("wpBase").value.trim(),
     wp_user: $("wpUser").value.trim(),
+    render: $("render").checked,
   };
 
   $("startBtn").disabled = true;

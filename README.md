@@ -117,13 +117,49 @@ extraction pipeline — so the work has to happen server-side.
 
 ## Tuning extraction
 
-If a specific site's content area comes through wrong (too much or too little),
-pin it with a CSS selector in `config.toml`:
+**Most "missing content" is an extraction problem, not a fetch problem.** When a
+page comes through as nav/boilerplate or drops its real content, the content is
+usually already in the HTML — the auto-extractor just picked the wrong region.
+Pin the content area with a per-domain CSS selector in `config.toml`:
 
 ```toml
 [selectors]
 "example.com" = "article.entry-content"
+# real examples found in testing:
+"redtailgc.com"     = "article.uk-article"   # recovers a rates image auto-extraction dropped
+"buffalocreekgc.com" = "#et-boc"             # Divi builder content region
 ```
+
+Try this **first** — before reaching for `--render` — since it's free and fixes
+the common case (theme/builder layouts the auto-extractor misjudges).
+
+## JavaScript rendering (`--render`)
+
+For pages whose content is genuinely injected by JavaScript (SPAs, Wix, some
+React sites, JS-loaded galleries), render with a headless browser so the JS runs
+before extraction:
+
+```bash
+pip install -r requirements-render.txt
+python -m playwright install chromium      # one-time browser download
+python -m wpmigrate --urls urls.txt --out out.wxr --images sideload --render
+```
+
+(In the web UI: tick **"Render JavaScript"**.) It loads each page in headless
+Chromium, scrolls to trigger lazy content, waits for the network to settle, then
+extracts the rendered DOM.
+
+**Caveats worth knowing:**
+
+- It only helps when content is JS-injected into the **same-origin DOM**. It does
+  **not** help when the "missing" content is actually (a) an **image** of the
+  content (e.g. a rate card JPG), (b) in a region the extractor discards — use a
+  selector for both — or (c) inside a **third-party iframe** (booking widgets,
+  maps, stores), which is a separate app and can't be captured as content.
+- It's slower and needs the Playwright browser installed.
+
+Rule of thumb: **selector first, `--render` only if the content truly isn't in
+the static HTML.**
 
 ## Model
 

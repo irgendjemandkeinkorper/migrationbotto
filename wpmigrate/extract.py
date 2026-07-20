@@ -41,16 +41,38 @@ def _host(url: str) -> str:
     return urlparse(url).netloc.lower().removeprefix("www.")
 
 
+# Headings that live in every page's shared template, not its real content.
+_BOILERPLATE_HEADINGS = {"join our email club today!", "news & events"}
+
+
 def _extract_title(raw_html: str) -> str:
     soup = BeautifulSoup(raw_html, "lxml")
-    # Prefer an <h1> in the document, then <title>, then og:title.
+    # Prefer the first real content heading, then <title>, then og:title.
+    #
+    # A page's own <h1>/<h2> is more distinctive than its <title>: many CMS
+    # templates emit an identical, site-wide <title> (e.g. just the location or
+    # brand) on every page, which would collide into duplicate post names. To
+    # find the *content* heading we first drop the chrome (nav/header/footer/
+    # aside/form) and known template CTAs, then take the first heading left.
+    chrome = soup.find("body") or soup
+    work = BeautifulSoup(str(chrome), "lxml")
+    for junk in work.find_all(["nav", "header", "footer", "aside", "form"]):
+        junk.decompose()
+    cta = work.find(id="email-cta-heading")
+    if cta:
+        cta.decompose()
+    for h in work.find_all(["h1", "h2", "h3"]):
+        text = h.get_text(strip=True)
+        if text and text.lower() not in _BOILERPLATE_HEADINGS:
+            return text
+
     if soup.title and soup.title.string:
         title = soup.title.string.strip()
         # Trim common " | Site Name" suffixes conservatively.
         return re.split(r"\s+[|–—-]\s+", title)[0].strip() or title
-    h1 = soup.find("h1")
-    if h1:
-        return h1.get_text(strip=True)
+    og = soup.find("meta", attrs={"property": "og:title"})
+    if og and og.get("content", "").strip():
+        return og["content"].strip()
     return "Untitled"
 
 
@@ -97,8 +119,9 @@ def _tokenize_images(content_html: str, base_url: str) -> tuple[str, list[ImageR
     return (body.decode_contents() if body else str(soup)), images
 
 
-def extract(raw_html: str, url: str, selectors: dict[str, str]) -> Extracted:
-    title = _extract_title(raw_html)
+def extract(raw_html: str, url: str, selectors: dict[str, str],
+            title_override: str | None = None) -> Extracted:
+    title = title_override or _extract_title(raw_html)
     selector = selectors.get(_host(url)) or selectors.get(urlparse(url).netloc)
     content_html = _content_html(raw_html, url, selector)
     if not content_html.strip():

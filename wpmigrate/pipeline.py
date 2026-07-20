@@ -23,12 +23,17 @@ from .images import ImagePipeline
 Progress = Callable[[dict], None]
 
 
-def read_urls(path: Path) -> list[str]:
-    urls: list[str] = []
+def read_urls(path: Path) -> list[tuple[str, str | None]]:
+    """Read the URL list. Each line is a URL, optionally followed by
+    ` | Title` to force the page title (useful for pages whose markup has no
+    usable heading, so auto-detection would fall back to a generic <title>)."""
+    urls: list[tuple[str, str | None]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
-        if line and not line.startswith("#"):
-            urls.append(line)
+        if not line or line.startswith("#"):
+            continue
+        url, sep, title = line.partition("|")
+        urls.append((url.strip(), title.strip() if sep else None))
     return urls
 
 
@@ -41,10 +46,19 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
     """Run the pipeline. Returns (succeeded, failed) page counts."""
     urls = read_urls(cfg.urls_file)
     total = len(urls)
-    print(f"Loaded {total} URL(s). Model: {cfg.model}. Images: {cfg.image_mode}.")
+    mode = "playwright" if cfg.render else "static"
+    print(f"Loaded {total} URL(s). Model: {cfg.model}. Images: {cfg.image_mode}. "
+          f"Fetch: {mode}.")
     _emit(progress, {"type": "start", "total": total})
 
-    fetcher = Fetcher(cfg.user_agent, cfg.request_timeout, cfg.rate_limit_seconds)
+    if cfg.render:
+        from .render import PlaywrightFetcher
+        fetcher = PlaywrightFetcher(
+            cfg.user_agent, cfg.request_timeout, cfg.rate_limit_seconds,
+            wait_ms=cfg.render_wait_ms, scroll=cfg.render_scroll,
+        )
+    else:
+        fetcher = Fetcher(cfg.user_agent, cfg.request_timeout, cfg.rate_limit_seconds)
     images = ImagePipeline(cfg, fetcher)
     client = anthropic.Anthropic()
 
@@ -52,11 +66,11 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
     failed = 0
 
     try:
-        for i, url in enumerate(urls, start=1):
+        for i, (url, title_override) in enumerate(urls, start=1):
             print(f"[{i}/{total}] {url}")
             try:
                 raw = fetcher.get_html(url)
-                ex = extract_mod.extract(raw, url, cfg.selectors)
+                ex = extract_mod.extract(raw, url, cfg.selectors, title_override)
                 if not ex.html.strip():
                     print("    ! no main content extracted; skipping")
                     failed += 1

@@ -22,9 +22,17 @@ def main(argv: list[str] | None = None) -> int:
         help="Image handling: upload (REST to media library) / sideload (WXR "
         "attachment items, importer fetches them) / bundle (local) / remote.",
     )
+    parser.add_argument(
+        "--render",
+        action="store_true",
+        help="Render pages with a headless browser (Playwright) so JavaScript "
+        "runs before extraction. Needs: pip install -r requirements-render.txt "
+        "&& python -m playwright install chromium.",
+    )
     args = parser.parse_args(argv)
 
-    cfg = load_config(args.urls, args.out, args.config, args.images)
+    cfg = load_config(args.urls, args.out, args.config, args.images,
+                      render=True if args.render else None)
     problems = validate(cfg)
     if problems:
         print("Configuration problems:", file=sys.stderr)
