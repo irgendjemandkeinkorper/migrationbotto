@@ -104,6 +104,64 @@ Confirm you understand, then wait for the first URL.
 
 ---
 
+## Template-driven mode (recommended — this is what fixes the QA drift)
+
+Open-ended "reproduce the source layout" is *why* quality varies page to page.
+The fix is to give the model a **known-good target** and have it fit content into
+that shape, rather than invent one each time. It turns the job from "compose a
+page" into "pattern-match to this example," which is far more reliable and
+consistent.
+
+**Prep (one time):**
+
+1. **Get your template's block markup.** In WordPress, open a page you've already
+   built correctly → **⋮ Options → Code editor** → select all → copy. That markup
+   *is* your template.
+2. **Build a small library** by doing this for one good example of each *page
+   type* you actually have — e.g. a generic content page, a rates page, a
+   memberships page, a restaurant/menu page, a contact page. For homogeneous
+   sites (like golf courses) 4–6 templates cover almost everything.
+
+**Then add this block to the very top of the prompt, above "Process for every URL":**
+
+> TARGET TEMPLATE(S): below is the block markup of my approved WordPress
+> template(s), each labeled by page type. Treat it as the canonical structure,
+> block vocabulary, and styling conventions for all output.
+>
+> [paste each template's block markup here, labeled — e.g. "=== RATES PAGE ===",
+> "=== GENERIC CONTENT PAGE ===", ...]
+>
+> Your job is NOT to mirror the source page's layout. Your job is to take the
+> source page's **content** and express it with the **same blocks, section order,
+> heading levels, column ratios, image size slugs, and button/CTA patterns** as
+> the TARGET TEMPLATE. When several templates are provided, first pick the one
+> whose purpose best matches the source page, state which you chose in one line,
+> then map the content into it.
+>
+> Rules:
+> - Use ONLY block types and patterns that appear in the chosen template. Do not
+>   introduce blocks the template doesn't use.
+> - Follow the template's section order; fill each section with the matching
+>   source content. **Omit** a section if the source has nothing for it — never
+>   invent filler.
+> - If the source has real content no template section fits, use the closest
+>   template block and note it under "Needs manual attention."
+> - Match the template's conventions exactly: heading levels, column widths,
+>   image `sizeSlug`, button classes, spacer/separator usage.
+>
+> QA self-check before returning — fix any failures, don't just report them:
+> - [ ] Output uses only blocks that appear in the chosen template.
+> - [ ] Section order and heading levels match the template.
+> - [ ] Every image is a full-resolution URL with alt text and the template's size slug.
+> - [ ] No leftover source nav/footer/share/CTA/breadcrumb boilerplate.
+> - [ ] No invented content and no empty placeholder sections.
+
+The more representative your template library, the more consistent and
+paste-ready every page comes out. This is the highest-leverage change you can
+make to output quality.
+
+---
+
 ## Optional: output a WXR item instead (for bulk import)
 
 If you'd rather bulk-import than paste page by page, add this line to the prompt:
