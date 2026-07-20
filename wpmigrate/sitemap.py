@@ -31,11 +31,21 @@ def _maybe_gunzip(url: str, content: bytes) -> bytes:
 
 def _parse(content: bytes) -> tuple[str, list[str]]:
     """Return (root_localname, [loc strings])."""
+    # Some WP/Yoast sitemaps emit a BOM or blank line before <?xml ...?>,
+    # which strict XML parsing rejects. Trim anything before the declaration.
+    content = content.lstrip(b"\xef\xbb\xbf \t\r\n")
     root = ET.fromstring(content)
     locs: list[str] = []
-    for el in root.iter():
-        if _localname(el.tag) == "loc" and el.text:
-            locs.append(el.text.strip())
+    # Only take the <loc> that is a direct child of each <url>/<sitemap> entry.
+    # This deliberately skips <image:loc> (nested under <image:image>), which
+    # Yoast/WP sitemaps include for each page's images.
+    for entry in root:
+        if _localname(entry.tag) not in ("url", "sitemap"):
+            continue
+        for child in entry:
+            if _localname(child.tag) == "loc" and child.text:
+                locs.append(child.text.strip())
+                break
     return _localname(root.tag), locs
 
 
