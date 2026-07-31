@@ -24,6 +24,8 @@ what bites you. That's the stuff source code doesn't tell you.
 | `30-Decisions/` | ADRs — why we chose X over Y | tempted to change a load-bearing choice |
 | `40-Gotchas/` | Footguns, non-obvious constraints, "don't do this" | anywhere near the sharp edges |
 | `50-Sessions/` | Dated logs of notable sessions + what changed | reconstructing recent history |
+| `60-Patterns/` | Content-structure → Gutenberg-block mappings, learned across migrations | tuning the analyze stage or reviewing a manual-attention report |
+| `70-Templates/` | Per-client target-template profiles (preferred block patterns) | migrating into a specific client theme |
 | `_templates/` | The note templates below | creating any new note |
 
 ## How it connects to the rest of the pipeline

@@ -32,7 +32,10 @@ social buttons, "related posts", author bios, newsletter or subscribe prompts, \
 cookie/consent notices, comment sections, ad labels, breadcrumb trails.
 4. Image placeholder tokens look like ⟦IMG_0⟧, ⟦IMG_1⟧, etc. Preserve every \
 token EXACTLY as written, each alone in its own <p>, in its original order. \
-Never add, remove, renumber, or reword a token.
+Never add, remove, renumber, or reword a token. If a token sits inside a \
+table, list, or other element in the source, HOIST it out into its own <p> \
+placed immediately before that element — a token must never remain inside \
+a <table>, <ul>, <ol>, or <blockquote>.
 5. Do not add commentary, titles, or a wrapping document element. Do not wrap \
 the output in Markdown code fences. Return the cleaned HTML fragment only.
 6. Preserve the reading order and all substantive text. Do not summarize or \

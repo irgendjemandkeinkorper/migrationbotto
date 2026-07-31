@@ -25,10 +25,16 @@ updated: ⟨YYYY-MM-DD⟩
 - ⟨[[20-Modules/db]]⟩
 
 ## Decisions (ADRs)
-- ⟨[[30-Decisions/0001-example]]⟩
+- [[30-Decisions/0001-componentized-pipeline-and-vault-learning]]
 
 ## Gotchas
-- ⟨[[40-Gotchas/example-footgun]]⟩
+- [[40-Gotchas/Trafilatura duplicates body on block-theme markup]]
+
+## Patterns
+- [[60-Patterns/README]]
+
+## Templates
+- [[70-Templates/README]]
 
 ## Recent sessions
 - ⟨[[50-Sessions/⟨YYYY-MM-DD⟩-example]]⟩

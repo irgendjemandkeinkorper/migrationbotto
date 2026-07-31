@@ -122,7 +122,7 @@ def _expand_tokens_in_text(text: str, media_map: dict[int, MediaResult]) -> list
     out: list[str] = []
     pos = 0
     for m in TOKEN_RE.finditer(text):
-        before = text[pos:m.start()].strip()
+        before = re.sub(r"\s+", " ", text[pos:m.start()]).strip()
         if before:
             out.append(_paragraph_block(html_lib.escape(before)))
         idx = int(m.group(1))
@@ -130,7 +130,7 @@ def _expand_tokens_in_text(text: str, media_map: dict[int, MediaResult]) -> list
         if media is not None:
             out.append(_image_block(media))
         pos = m.end()
-    tail = text[pos:].strip()
+    tail = re.sub(r"\s+", " ", text[pos:]).strip()
     if tail:
         out.append(_paragraph_block(html_lib.escape(tail)))
     return out
@@ -153,9 +153,11 @@ def to_blocks(clean_html: str, media_map: dict[int, MediaResult]) -> str:
         name = child.name
         raw_text = child.get_text()
 
-        # A block-level element that is (or contains) image tokens.
-        if TOKEN_RE.search(raw_text) and name in {"p", "div", "figure"}:
-            blocks.extend(_expand_tokens_in_text(raw_text, media_map))
+        # Any element that carries image tokens gets flattened into image +
+        # paragraph blocks: a table or list wrapping images is layout, not
+        # data, and a token must never survive into the output as text.
+        if TOKEN_RE.search(raw_text):
+            blocks.extend(_expand_tokens_in_text(child.get_text(" "), media_map))
             continue
 
         if name == "p":

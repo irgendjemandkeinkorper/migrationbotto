@@ -112,6 +112,9 @@
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
       <input type="checkbox" id="render" style="width:auto"> Render JavaScript (headless browser) — for JS-heavy pages; slower, needs Playwright installed
     </label>
+    <label>Content selectors (optional, one <code>domain = css-selector</code> per line)</label>
+    <textarea id="selectors" rows="2" placeholder="example.com = .post_content"></textarea>
+    <div class="hint">Overrides automatic content extraction for a domain. Use when output has duplicated text, boilerplate images (logos, icons), or missing content.</div>
     <div id="wpFields" class="row">
       <div><label>WordPress URL</label><input id="wpBase" placeholder="https://your-site.com"></div>
       <div><label>WordPress user</label><input id="wpUser" placeholder="admin"></div>
@@ -186,6 +189,14 @@ $("startBtn").addEventListener("click", async () => {
     wp_base_url: $("wpBase").value.trim(),
     wp_user: $("wpUser").value.trim(),
     render: $("render").checked,
+    selectors: Object.fromEntries(
+      $("selectors").value.split("\n")
+        .map(line => {
+          const i = line.indexOf("=");
+          return i < 0 ? null : [line.slice(0, i).trim(), line.slice(i + 1).trim()];
+        })
+        .filter(p => p && p[0] && p[1])
+    ),
   };
 
   $("startBtn").disabled = true;

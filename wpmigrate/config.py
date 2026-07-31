@@ -29,6 +29,10 @@ class Config:
     # --- output ---
     out_file: Path = Path("export.wxr")
     image_dir: Path = Path("images_cache")
+    # Per-page raw fetched HTML, saved before extraction touches it — the
+    # pure-backup archive. A parallel "<out_file stem>-raw.wxr" is built from
+    # this alongside the block-ified export; see ADR 0001.
+    raw_html_dir: Path = Path("raw_html")
     post_type: str = "page"          # "page" or "post"
     post_status: str = "publish"     # "publish" | "draft" | "pending"
     author: str = "admin"            # dc:creator / wp:post_author login
@@ -89,6 +93,7 @@ def load_config(
         out_file=Path(out_file),
         selectors=data.get("selectors", {}),
         image_dir=Path(data.get("image_dir", "images_cache")),
+        raw_html_dir=Path(data.get("raw_html_dir", "raw_html")),
         post_type=data.get("post_type", "page"),
         post_status=data.get("post_status", "publish"),
         author=data.get("author", "admin"),

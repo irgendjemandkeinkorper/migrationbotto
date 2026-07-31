@@ -1,0 +1,19 @@
+# Test-run config against wptest.neintruths.com (our controlled WP test site)
+image_mode = "sideload"
+image_dir = "images_cache"
+
+post_type = "page"
+post_status = "draft"
+author = "adam"
+
+model = "claude-opus-4-8"
+effort = "medium"
+llm_max_tokens = 32000
+
+request_timeout = 30.0
+rate_limit_seconds = 1.0
+
+# Twenty Twenty-Five markup makes trafilatura duplicate the page body;
+# scope extraction to the post-content block instead.
+[selectors]
+"wptest.neintruths.com" = ".entry-content"

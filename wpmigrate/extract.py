@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from html import escape as html_escape
 from urllib.parse import urljoin, urlparse
 
 import trafilatura
@@ -117,6 +118,23 @@ def _tokenize_images(content_html: str, base_url: str) -> tuple[str, list[ImageR
     # decode() on the soup's body if present, else the fragment as-is.
     body = soup.find("body")
     return (body.decode_contents() if body else str(soup)), images
+
+
+def detokenize(content_html: str, images: list[ImageRef]) -> str:
+    """Reverse `_tokenize_images`: put real <img> tags back in place of
+    ⟦IMG_n⟧ tokens. Used for the raw-backup WXR, which skips clean_llm/blocks
+    entirely and so never gets the token->image_block expansion those stages
+    do."""
+    by_index = {img.index: img for img in images}
+
+    def _sub(m: re.Match[str]) -> str:
+        img = by_index.get(int(m.group(1)))
+        if img is None:
+            return m.group(0)
+        alt = html_escape(img.alt)
+        return f'<img src="{html_escape(img.src)}" alt="{alt}">'
+
+    return TOKEN_RE.sub(_sub, content_html)
 
 
 def extract(raw_html: str, url: str, selectors: dict[str, str],

@@ -6,12 +6,14 @@ the migration live. Events are plain dicts:
   {"type": "page",   "index": i, "total": N, "url": u,
                      "status": "ok"|"failed"|"skipped", "title": t,
                      "images": k, "message": str}
-  {"type": "done",   "succeeded": s, "failed": f}
+  {"type": "done",   "succeeded": s, "failed": f,
+                     "raw_out_file": path|None, "raw_html_dir": path}
 """
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 import anthropic
 
@@ -21,6 +23,11 @@ from .fetch import Fetcher
 from .images import ImagePipeline
 
 Progress = Callable[[dict], None]
+
+
+def _slug_from_url(url: str) -> str:
+    path = urlparse(url).path.strip("/")
+    return wxr.slugify(path.replace("/", "-")) if path else "index"
 
 
 def read_urls(path: Path) -> list[tuple[str, str | None]]:
@@ -62,7 +69,10 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
     images = ImagePipeline(cfg, fetcher)
     client = anthropic.Anthropic()
 
+    cfg.raw_html_dir.mkdir(parents=True, exist_ok=True)
+
     pages: list[wxr.Page] = []
+    raw_pages: list[wxr.Page] = []
     failed = 0
 
     try:
@@ -70,6 +80,9 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
             print(f"[{i}/{total}] {url}")
             try:
                 raw = fetcher.get_html(url)
+                raw_path = cfg.raw_html_dir / f"{i:03d}-{_slug_from_url(url)}.html"
+                raw_path.write_text(raw, encoding="utf-8")
+
                 ex = extract_mod.extract(raw, url, cfg.selectors, title_override)
                 if not ex.html.strip():
                     print("    ! no main content extracted; skipping")
@@ -78,6 +91,11 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
                                      "url": url, "status": "skipped",
                                      "message": "no main content extracted"})
                     continue
+
+                raw_pages.append(
+                    wxr.Page(title=ex.title, link=url,
+                             content_blocks=extract_mod.detokenize(ex.html, ex.images))
+                )
 
                 media_map = images.process(ex.images)
                 cleaned = clean_llm.clean(client, cfg, ex.title, ex.html)
@@ -126,5 +144,22 @@ def run(cfg: Config, progress: Progress | None = None) -> tuple[int, int]:
     else:
         print("\nNo pages succeeded; no WXR written.")
 
-    _emit(progress, {"type": "done", "succeeded": len(pages), "failed": failed})
+    raw_out_file = None
+    if raw_pages:
+        raw_doc = wxr.build_wxr(
+            raw_pages,
+            author=cfg.author,
+            post_type=cfg.post_type,
+            status=cfg.post_status,
+            emit_attachments=False,
+        )
+        raw_out_file = cfg.out_file.with_name(
+            cfg.out_file.stem + "-raw" + cfg.out_file.suffix
+        )
+        raw_out_file.write_text(raw_doc, encoding="utf-8")
+        print(f"Wrote {len(raw_pages)} raw backup page(s) to {raw_out_file}")
+
+    _emit(progress, {"type": "done", "succeeded": len(pages), "failed": failed,
+                     "raw_out_file": str(raw_out_file) if raw_out_file else None,
+                     "raw_html_dir": str(cfg.raw_html_dir)})
     return len(pages), failed
